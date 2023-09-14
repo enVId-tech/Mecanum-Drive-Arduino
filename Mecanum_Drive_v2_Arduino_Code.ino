@@ -15,6 +15,8 @@
 #define CH2 11
 #define CH3 12
 #define CH4 13
+#define CH5A 53
+// #define CH5B 52
 
 // define the pins for the encoders
 #define ENC1A A0
@@ -31,6 +33,8 @@ int ch1Value = 0;
 int ch2Value = 0;
 int ch3Value = 0;
 int ch4Value = 0;
+int ch5AValue = 0;
+// int ch5BValue = 0;
 
 // Create variables to store the encoder counts and previous counts for each motor
 long enc1Count = 0;
@@ -81,14 +85,7 @@ int loopCount = 0;
 double deadBand = 60;  // (1 controller tick = 100, default 20-80)
 
 // Slow mode
-bool slowMoActive = false;
-double speedPercentage = 0.85;  // Always a decimal, max 1.0
-long CH2StartTime = 0;
-long CH2WaitDur = 5000;          // in ms
-double slowBandUpperLim = 1900;  // Highest Bound = 1987
-double slowBandLowerLim = 1000;  // Lowest Bound = 994
-const double defaultBandUpperLim = 1510;
-const double defaultBandLowerLim = 1495;
+double slowMo;
 
 // Logging
 int slowlog = 0;
@@ -110,6 +107,8 @@ void setup() {
   pinMode(CH2, INPUT);
   pinMode(CH3, INPUT);
   pinMode(CH4, INPUT);
+  pinMode(CH5A, INPUT);
+  // pinMode(CH5B, INPUT);
 
   // initialize the encoder pins as inputs and attach interrupts to them to count pulses from the encoders
   pinMode(ENC1A, INPUT_PULLUP);
@@ -139,6 +138,8 @@ void loop() {
   ch2Value = pulseIn(CH2, HIGH);
   ch3Value = pulseIn(CH3, HIGH);
   ch4Value = pulseIn(CH4, HIGH);
+  ch5AValue = pulseIn(CH5A, HIGH);
+  // ch5BValue = pulseIn(CH5B, HIGH);
 
   if (slowlog >= 100) {
     // Print the receiver channel values for debugging
@@ -150,28 +151,12 @@ void loop() {
     Serial.print(ch3Value);
     Serial.print(" CH4: ");
     Serial.println(ch4Value);
-    Serial.println(slowMoActive);
+    Serial.print(" CH5A: ");
+    Serial.println(ch5AValue);
+    Serial.println(slowMo);
     slowlog = 0;
   } else {
     slowlog += 10;
-  }
-
-  if ((ch2Value > slowBandUpperLim || ch2Value < slowBandLowerLim)) {
-    // Check if channel 2's value is above/below these ranges and slow mode is not enabled
-    if (CH2StartTime == 0) {
-      CH2StartTime = millis();
-    }
-
-    if (millis() - CH2StartTime >= 5000) {
-      slowMoActive = !slowMoActive;  // Toggle slow motion mode
-      CH2StartTime = 0;
-    }
-  } else if (ch2Value >= slowBandLowerLim && ch2Value <= slowBandUpperLim) {
-    CH2StartTime = 0;  // Reset the timer
-  }
-
-  if (slowBandUpperLim <= defaultBandUpperLim || slowBandLowerLim >= defaultBandLowerLim) {
-    slowMoActive = true;
   }
 
   // Map the receiver channel values to a range of -500 to +500
@@ -261,9 +246,11 @@ void loop() {
 }
 
 void setMotor(int dirPin, int pwmPin, int speed) {
-
   // Constrain the speed to the range [-255, +255]
   speed = constrain(speed, -255, +255);
+
+  // Slow mode variable
+  slowMo = map(ch5AValue, 1000, 2000, 0, 100); // In percentage
 
   // Determine the direction and PWM value based on the speed
   int dir = (speed > 0) ? HIGH : LOW;
@@ -272,17 +259,7 @@ void setMotor(int dirPin, int pwmPin, int speed) {
   if (speed > deadBand || speed < -deadBand) {
     // Set the direction and PWM value for the specified motor
     digitalWrite(dirPin, dir);
-    // Checks for slow mode
-    if (!slowMoActive) {
-      analogWrite(pwmPin, pwm);
-    } else {
-      // Checks for in the case that aaron does dumb shit
-      if (speedPercentage <= 1) {
-        analogWrite(pwmPin, pwm * speedPercentage);
-      } else {
-        analogWrite(pwmPin, pwm * 0.85);
-      }
-    }
+    analogWrite(pwmPin, pwm * (slowMo / 100));
   } else {
     digitalWrite(dirPin, LOW);
     analogWrite(pwmPin, 0);
