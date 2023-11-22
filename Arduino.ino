@@ -1,14 +1,14 @@
 #include <Servo.h>
 
 // define the pins for the motor driver
-#define M1DIR 2
-#define M1PWM 3
-#define M2DIR 4
-#define M2PWM 5
-#define M3DIR 6
-#define M3PWM 7
-#define M4DIR 8
-#define M4PWM 9
+#define M1DIR 2 // FRONT LEFT DIR
+#define M1PWM 3 // FRONT LEFT PWM
+#define M2DIR 4 // FRONT RIGHT DIR
+#define M2PWM 5  // FRONT RIGHT PWM
+#define M3DIR 6 // BACK LEFT DIR
+#define M3PWM 7 // BACK LEFT PWM
+#define M4DIR 8 // BACK RIGHT DIR
+#define M4PWM 9 // BACK RIGHT PWM
 
 // define the pin for the receiver
 #define CH1 10
@@ -164,11 +164,11 @@ void loop() {
   int y = map(ch3Value, 1000, 2000, -253, +253);
   int r = map(ch4Value, 1000, 2000, -253, +253);
 
-  // Calculate the desired motor speeds for a mecanum drive
-  int m1Speed = x + y + r + M1offset;
-  int m2Speed = x - y + r + M2offset;
-  int m3Speed = x - y - r + M3offset;
-  int m4Speed = x + y - r + M4offset;
+  // Calculate the desired motor speeds for a mecanum drive (X is forward, Y is right, R is clockwise)
+  int m1Speed = x + y + r + M1offset; // M1 is front left
+  int m2Speed = x - y + r + M2offset; // M2 is front right
+  int m3Speed = x - y - r + M3offset; // M3 is back left
+  int m4Speed = x + y - r + M4offset; // M4 is back right
 
   // Calculate the actual motor speeds based on the encoder counts
   long enc1Delta = enc1Count - enc1PrevCount;
@@ -203,10 +203,10 @@ void loop() {
   int pidOutput4 = kp * error4 + ki * integral4 + kd * derivative4;
 
   // Set the direction and speed of each motor based on the PID output
-  setMotor(M1DIR, M1PWM, pidOutput1);
-  setMotor(M2DIR, M2PWM, pidOutput2);
-  setMotor(M3DIR, M3PWM, pidOutput3);
-  setMotor(M4DIR, M4PWM, pidOutput4);
+  setMotor(M1DIR, M1PWM, pidOutput1); // M1 is front left, DIR Pin = 2, PWM Pin = 3
+  setMotor(M2DIR, M2PWM, pidOutput2); // M2 is front right, DIR Pin = 4, PWM Pin = 5
+  setMotor(M3DIR, M3PWM, pidOutput3); // M3 is back left, DIR Pin = 6, PWM Pin = 7
+  setMotor(M4DIR, M4PWM, pidOutput4); // M4 is back right, DIR Pin = 8, PWM Pin = 9
 
   // Serial Plotter
   // Calculate the average error values for each motor
