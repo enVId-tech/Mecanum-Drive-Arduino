@@ -10,6 +10,13 @@
 #define M4DIR 8 // BACK RIGHT DIR
 #define M4PWM 9 // BACK RIGHT PWM
 
+// CHANNELS ON RECEIVER, USE TO FIX PINS 10-13
+
+// Channel 1 is forward/backward
+// Channel 2 is left/right
+// Channel 3 is nothing
+// Channel 4 is rotation
+
 // define the pin for the receiver
 #define CH1 10
 #define CH2 11
@@ -82,7 +89,7 @@ double errorSum4 = 0;
 int loopCount = 0;
 
 // Deadband size
-double deadBand = 60;  // (1 controller tick = 100, default 20-80)
+double deadBand = 100;  // (1 controller tick = 100, default 20-80)
 
 // Slow mode
 double slowMo;
@@ -160,15 +167,15 @@ void loop() {
   }
 
   // Map the receiver channel values to a range of -500 to +500
-  int x = map(ch1Value, 1000, 2000, -253, +253);
-  int y = map(ch3Value, 1000, 2000, -253, +253);
-  int r = map(ch4Value, 1000, 2000, -253, +253);
+  int x = map(ch1Value, 1000, 2000, -253, +253); 
+  int y = map(ch3Value, 1000, 2000, -253, +253);  // Channel 3 is left/right
+  int r = map(ch4Value, 1000, 2000, -253, +253); // Channel 4 is clockwise/counter-clockwise
 
   // Calculate the desired motor speeds for a mecanum drive (X is forward, Y is right, R is clockwise)
   int m1Speed = x + y + r + M1offset; // M1 is front left
   int m2Speed = x - y + r + M2offset; // M2 is front right
-  int m3Speed = x - y - r + M3offset; // M3 is back left
-  int m4Speed = x + y - r + M4offset; // M4 is back right
+  int m3Speed = x + y - r + M3offset; // M3 is back left
+  int m4Speed = x - y - r + M4offset; // M4 is back right
 
   // Calculate the actual motor speeds based on the encoder counts
   long enc1Delta = enc1Count - enc1PrevCount;
