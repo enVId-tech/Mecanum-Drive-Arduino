@@ -1,5 +1,7 @@
 #include <Servo.h>
 
+// TODO: Camera
+
 // define the pins for the motor driver
 #define M1DIR 2 // FRONT LEFT DIR
 #define M1PWM 3 // FRONT LEFT PWM
