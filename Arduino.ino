@@ -179,6 +179,15 @@ void loop() {
   int m3Speed = x + y - r + M3offset; // M3 is back left
   int m4Speed = x - y - r + M4offset; // M4 is back right
 
+  // Send the analog values for the motors without additional characters
+  Serial.print(m1Speed);
+  Serial.print(",");
+  Serial.print(m2Speed);
+  Serial.print(",");
+  Serial.print(m3Speed);
+  Serial.print(",");
+  Serial.println(m4Speed);
+
   // Calculate the actual motor speeds based on the encoder counts
   long enc1Delta = enc1Count - enc1PrevCount;
   long enc2Delta = enc2Count - enc2PrevCount;
@@ -252,6 +261,8 @@ void loop() {
   errorSum3 += error3;
   errorSum4 += error4;
   loopCount++;
+
+  delay(10);
 }
 
 void setMotor(int dirPin, int pwmPin, int speed) {
