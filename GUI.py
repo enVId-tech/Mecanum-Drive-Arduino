@@ -1,87 +1,59 @@
-import pygame
-from pygame.locals import *
+import tkinter as tk
 import serial
-import time
 
-# Set your Arduino serial port and baud rate
-arduino_port = "COM6"  # Change this to your Arduino port
-baud_rate = 9600
+ser = serial.Serial('COM6', 9600)  # Open serial port that Arduino is using
 
-# Initialize Pygame
-pygame.init()
+controller_deadband = 80
 
-# Set up the screen
-screen_width, screen_height = 800, 600
-screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.display.set_caption("Arduino Wheel Directions")
+def update_motor_speeds():
+    ser.write(b"GET\n")  # Send a command to request motor speeds
+    response = ser.readline().decode().strip()
 
-# Set up colors
-white = (255, 255, 255)
+    # Print the received response for debugging
+    print("Received response:", repr(response))
 
-# Load arrow images
-arrow_up = pygame.image.load("arrow_up.png")  # Replace with the path to your arrow image
-arrow_down = pygame.image.load("arrow_down.png")
-arrow_none = pygame.image.load("arrow_none.png")
+    try:
+        speeds = list(map(int, response.split(',')))
 
-# Resize arrow images
-desired_width, desired_height = 50, 50
-arrow_up = pygame.transform.scale(arrow_up, (desired_width, desired_height))
-arrow_down = pygame.transform.scale(arrow_down, (desired_width, desired_height))
-arrow_none = pygame.transform.scale(arrow_none, (desired_width, desired_height))
+        speeds = speeds[:4]  # Only use the first 4 values (in case Arduino sends more)
+        speeds[1], speeds[3] = -speeds[1], -speeds[3]  # Reverse the direction of motors 2 and 4
 
-# Set initial arrow positions
-arrow_positions = [(100, 100), (300, 100), (100, 300), (300, 300)]
+        for i, motor_speed in enumerate(speeds):
+            if i < len(arrows):
+                if motor_speed > controller_deadband/1.2:
+                    arrows[i]['text'] = '↑'  # Up arrow for positive speeds
+                elif motor_speed < -controller_deadband/1.2:
+                    arrows[i]['text'] = '↓'  # Down arrow for negative speeds
+                else:
+                    arrows[i]['text'] = 'O'  # Empty for zero speed
+            else:
+                # If there are more values than arrows, you may need to handle this situation
+                pass
 
-# Set the font for displaying text
-font = pygame.font.Font(None, 36)
+    except ValueError as e:
+        print("Error:", e)
 
-# Connect to Arduino
-arduino = serial.Serial(arduino_port, baud_rate, timeout=1)
-time.sleep(2)  # Allow time for the Arduino to reset
+    root.after(1, update_motor_speeds)  # Repeat the update every 1 millisecond(s)
 
-# Set the desired frame rate (frames per second)
-fps = 10
-clock = pygame.time.Clock()
+root = tk.Tk()
+root.title("Arduino Motor Visualization")
 
-# Time interval for fetching data (in milliseconds)
-data_fetch_interval = 100
-last_fetch_time = pygame.time.get_ticks()
+# Create labels for each motor with initial empty values
+arrows = []
+for i in range(4):
+    label = tk.Label(root, text='', font=('Arial', 24))
+    # Update the grid positions based on the motor order
+    if i == 0:
+        label.grid(row=0, column=0, padx=10)
+    elif i == 1:
+        label.grid(row=0, column=1, padx=10)
+    elif i == 2:
+        label.grid(row=1, column=0, padx=10)
+    elif i == 3:
+        label.grid(row=1, column=1, padx=10)
+    arrows.append(label)
 
-# Main loop
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == QUIT:
-            running = False
+# Start the function to update motor speeds
+update_motor_speeds()
 
-    current_time = pygame.time.get_ticks()
-
-    # Fetch data from Arduino every 100 ms
-    if current_time - last_fetch_time >= data_fetch_interval:
-        data = arduino.readline().decode().strip().split(',')
-
-        print(data)
-
-        # Set background color only once per frame
-        screen.fill(white)
-
-        # Display arrows based on Arduino data
-        if len(data) == 4:  # Ensure valid data is received
-            for i in range(4):
-                arrow_direction = int(data[i]) if data[i] else 0
-                screen.blit(arrow_up if arrow_direction > 0 else
-                            arrow_down if arrow_direction < 0 else arrow_none,
-                            arrow_positions[i])
-
-        # Update the display only once per frame
-        pygame.display.flip()
-
-        # Update the last fetch time
-        last_fetch_time = current_time
-
-    # Cap the frame rate
-    clock.tick(fps)
-
-# Close the serial connection and quit Pygame
-arduino.close()
-pygame.quit()
+root.mainloop()
