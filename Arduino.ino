@@ -91,10 +91,10 @@ double errorSum4 = 0;
 int loopCount = 0;
 
 // Deadband size
-double deadBand = 100;  // (1 controller tick = 100, default 20-80)
+double deadBand = 50;  // (1 controller tick = 100, default 20-80)
 
 // Slow mode
-double slowMo;
+double slowMo = 100;
 
 // Logging
 int slowlog = 0;
@@ -169,15 +169,15 @@ void loop() {
   }
 
   // Map the receiver channel values to a range of -500 to +500
-  int x = map(ch1Value, 1000, 2000, -253, +253); 
-  int y = map(ch3Value, 1000, 2000, -253, +253);  // Channel 3 is left/right // IGNORE
-  int r = map(ch4Value, 1000, 2000, -253, +253); // Channel 4 is clockwise/counter-clockwise // IGNORE
+  int x = map(ch1Value, 1000, 2000, -253, +253); //Counter
+  int y = map(ch3Value, 1000, 2000, -253, +253);  // Channel 3 is left/right // forward
+  int r = map(ch4Value, 1000, 2000, -253, +253); // Channel 4 is clockwise/counter-clockwise // left right
 
   // Calculate the desired motor speeds for a mecanum drive (X is forward, Y is right, R is clockwise)
   int m1Speed = x + y + r + M1offset; // M1 is front left
   int m2Speed = x - y + r + M2offset; // M2 is front right
-  int m3Speed = -x + y - r + M3offset; // M3 is back left
-  int m4Speed = -x - y - r + M4offset; // M4 is back right
+  int m3Speed = -x - y + r + M3offset; // M3 is back left
+  int m4Speed = -x + y + r + M4offset; // M4 is back right
 
   // Send the analog values for the motors without additional characters
   Serial.print(m1Speed);
@@ -221,10 +221,10 @@ void loop() {
   int pidOutput4 = kp * error4 + ki * integral4 + kd * derivative4;
 
   // Set the direction and speed of each motor based on the PID output
-  setMotor(M1DIR, M1PWM, pidOutput1); // M1 is front left, DIR Pin = 2, PWM Pin = 3
-  setMotor(M2DIR, M2PWM, pidOutput2); // M2 is front right, DIR Pin = 4, PWM Pin = 5
-  setMotor(M3DIR, M3PWM, pidOutput3); // M3 is back left, DIR Pin = 6, PWM Pin = 7
-  setMotor(M4DIR, M4PWM, pidOutput4); // M4 is back right, DIR Pin = 8, PWM Pin = 9
+  setMotor(M1DIR, M1PWM, pidOutput1, 1); // M1 is front left, DIR Pin = 2, PWM Pin = 3
+  setMotor(M2DIR, M2PWM, pidOutput2, 2); // M2 is front right, DIR Pin = 4, PWM Pin = 5
+  setMotor(M3DIR, M3PWM, pidOutput3, 3); // M3 is back left, DIR Pin = 6, PWM Pin = 7
+  setMotor(M4DIR, M4PWM, pidOutput4, 4); // M4 is back right, DIR Pin = 8, PWM Pin = 9
 
   // Serial Plotter
   // Calculate the average error values for each motor
@@ -265,21 +265,30 @@ void loop() {
   delay(10);
 }
 
-void setMotor(int dirPin, int pwmPin, int speed) {
+void setMotor(int dirPin, int pwmPin, int speed, int motorNum) {
+  if (!motorNum) {
+    return;
+  }
+
   // Constrain the speed to the range [-255, +255]
   speed = constrain(speed, -255, +255);
 
   // Slow mode variable
-  slowMo = map(ch5AValue, 1000, 2000, 0, 100); // In percentage
+ // slowMo = map(ch5AValue, 1000, 2000, 0, 100); // In percentage
 
   // Determine the direction and PWM value based on the speed
   int dir = (speed > 0) ? HIGH : LOW;
   int pwm = abs(speed);
 
-  if (speed > deadBand || speed < -deadBand) {
+  if (abs(speed) > deadBand) {
     // Set the direction and PWM value for the specified motor
-    digitalWrite(dirPin, dir);
-    analogWrite(pwmPin, pwm * (slowMo / 100));
+    if (motorNum == 3) {
+      digitalWrite(dirPin, HIGH); // Change
+      analogWrite(pwmPin, pwm); // Change
+    } else {
+      digitalWrite(dirPin, dir);
+      analogWrite(pwmPin, pwm * (slowMo / 100));
+    }
   } else {
     digitalWrite(dirPin, LOW);
     analogWrite(pwmPin, 0);
