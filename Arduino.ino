@@ -170,14 +170,14 @@ void loop() {
 
   // Map the receiver channel values to a range of -500 to +500
   int x = map(ch1Value, 1000, 2000, -253, +253); 
-  int y = map(ch3Value, 1000, 2000, -253, +253);  // Channel 3 is left/right
-  int r = map(ch4Value, 1000, 2000, -253, +253); // Channel 4 is clockwise/counter-clockwise
+  int y = map(ch3Value, 1000, 2000, -253, +253);  // Channel 3 is left/right // IGNORE
+  int r = map(ch4Value, 1000, 2000, -253, +253); // Channel 4 is clockwise/counter-clockwise // IGNORE
 
   // Calculate the desired motor speeds for a mecanum drive (X is forward, Y is right, R is clockwise)
   int m1Speed = x + y + r + M1offset; // M1 is front left
   int m2Speed = x - y + r + M2offset; // M2 is front right
-  int m3Speed = x + y - r + M3offset; // M3 is back left
-  int m4Speed = x - y - r + M4offset; // M4 is back right
+  int m3Speed = -x + y - r + M3offset; // M3 is back left
+  int m4Speed = -x - y - r + M4offset; // M4 is back right
 
   // Send the analog values for the motors without additional characters
   Serial.print(m1Speed);
